@@ -1,0 +1,91 @@
+pipeline.description: "Pipeline for parsing Nginx access logs"
+
+pipeline.processors:
+- grok:
+    field: message
+    drop_field: true
+    pattern: '"?%{IP_LIST:nginx.access.remote_ip_list} - %{DATA:nginx.access.user_name} \[%{HTTPDATE:nginx.access.time}\] "%{WORD:nginx.access.method} %{DATA:nginx.access.url} HTTP/%{NUMBER:nginx.access.http_version}" %{NUMBER:nginx.access.response_code} %{NUMBER:nginx.access.body_sent.bytes} "%{DATA:nginx.access.referrer}" "%{DATA:nginx.access.agent}"'
+    definitions:
+      - IP_LIST: '%{IP}("?,?\s*%{IP})*'
+    ignore_missing: true
+- split:
+    field: 'nginx.access.remote_ip_list'
+    regex: '"?,?\s+'
+- select:
+    ingest: ${ingest.pipeline.nginx_set_remote_ip}
+    logstash: ${logstash.pipeline.nginx_set_remote_ip}
+- rename:
+    to: 'read_timestamp'
+    field: '@timestamp'
+- date:
+    to: "@timestamp"
+    field: "nginx.access.time"
+    drop_field: true
+    format: 'dd/MMM/YYYY:H:m:s Z'
+- user_agent:
+    to: "nginx.access.user_agent"
+    field: "nginx.access.agent"
+    drop_field: true
+- geoip:
+    to: "nginx.access.geoip"
+    field: "nginx.access.remote_ip"
+
+
+ingest.pipeline.nginx_set_remote_ip:
+- script.code: >-
+    boolean isPrivate(def ip) {
+      try {
+        StringTokenizer tok = new StringTokenizer(ip, '.');
+        int firstByte = Integer.parseInt(tok.nextToken());
+        int secondByte = Integer.parseInt(tok.nextToken());
+        if (firstByte == 10) {
+          return true;
+        }
+        if (firstByte == 192 && secondByte == 168) {
+          return true;
+        }
+        if (firstByte == 172 && secondByte >= 16 && secondByte <= 31) {
+          return true;
+        }
+        if (firstByte == 127) {
+          return true;
+        }
+        return false;
+      } catch (Exception e) {
+        return false;
+      }
+    }
+    
+    def found = false;
+    for (def item : ctx.nginx.access.remote_ip_list) {
+      if (!isPrivate(item)) {
+        ctx.nginx.access.remote_ip = item;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      ctx.nginx.access.remote_ip = ctx.nginx.access.remote_ip_list[0];
+    }
+
+logstash.pipeline.nginx_set_remote_ip:
+- ruby.code: |-
+    found = false
+    ips = event.get("[nginx][access][remote_ip_list]")
+    ips.each do |ip|
+      begin
+        a, b = ip.split(".")
+        a, b = a.to_i, b.to_i
+      rescue
+        continue
+      end
+
+      found = a == 10 || a == 127 || (a == 192 && b == 168) || (a == 172 && (16 <= b && b <= 31))
+      if found
+        event.set("[nginx][access][remote_ip]") = ip
+        break
+      end
+    end
+    if !found
+      event.set("[nginx][access][remote_ip]") = ips[0]
+    end
