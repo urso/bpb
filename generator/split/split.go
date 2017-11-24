@@ -95,10 +95,10 @@ func (s *split) compileLogstashRegex() ls.Filter {
 		target = source
 	}
 
-	source = strconv.Quote(ls.NormalizeField(source))
-	target = strconv.Quote(ls.NormalizeField(target))
+	source = ls.NormalizeField(source)
+	target = ls.NormalizeField(target)
 
-	code := fmt.Sprintf(`event.set(%v, event.get(%v).split(/%v/))`, target, source, s.Regex)
+	code := fmt.Sprintf(`event.set('%v', event.get('%v').split(/%v/))`, target, source, s.Regex)
 	return ls.MakeFilter("ruby", ls.Params{
 		"code": code,
 	})
