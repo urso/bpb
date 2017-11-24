@@ -30,7 +30,7 @@ func New(descr string, processors []*common.Config) (*Generator, error) {
 }
 
 func (g *Generator) MakeIngest(out io.Writer) error {
-	prog, err := g.compileIngest()
+	prog, err := g.CompileIngest()
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (g *Generator) MakeIngest(out io.Writer) error {
 }
 
 func (g *Generator) MakeLogstash(out io.Writer) error {
-	prog, err := g.compileLogstash()
+	prog, err := g.CompileLogstash()
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (g *Generator) MakeLogstash(out io.Writer) error {
 	return ls.Serialize(out, prog)
 }
 
-func (g *Generator) compileIngest() (ingest.Pipeline, error) {
+func (g *Generator) CompileIngest() (ingest.Pipeline, error) {
 	pipeline := ingest.Pipeline{
 		Description: g.Description,
 	}
@@ -72,7 +72,7 @@ func (g *Generator) compileIngest() (ingest.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (g *Generator) compileLogstash() (ls.Pipeline, error) {
+func (g *Generator) CompileLogstash() (ls.Pipeline, error) {
 	pipeline := ls.Pipeline{
 		Description: g.Description,
 	}
