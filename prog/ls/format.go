@@ -190,7 +190,7 @@ func (p *paramPrinter) OnBool(b bool) error {
 }
 
 func (p *paramPrinter) OnString(s string) error {
-	return p.onValue(strconv.Quote(s))
+	return p.onValue(fmt.Sprintf("\"%v\"", strings.Replace(s, "\"", "\\\"", -1)))
 }
 
 func (p *paramPrinter) OnInt8(i int8) error {
