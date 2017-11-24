@@ -82,7 +82,13 @@ func (g *grok) CompileLogstash() (ls.Block, error) {
 
 	params.DropField(g.DropField, g.Field)
 
-	blk := ls.MakeBlock(ls.MakeFilter("grok", params))
+	blk := ls.MakeBlock(
+		ls.MakeFilter("grok", params),
+
+		// TODO parse and fix field names in grok pattern instead of adding the
+		//      de_dot filter
+		ls.MakeFilter("de_dot", ls.Params{"nested": true}),
+	)
 	if g.IgnoreMissing {
 		blk = ls.IgnoreMissing(g.Field, blk)
 	}
