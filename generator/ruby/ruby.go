@@ -2,6 +2,7 @@ package ruby
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/urso/bpb/generator"
 	"github.com/urso/bpb/prog/ingest"
@@ -36,8 +37,9 @@ func (r *ruby) CompileIngest() ([]ingest.Processor, error) {
 }
 
 func (r *ruby) CompileLogstash() (ls.Block, error) {
+	code := strings.Replace(r.Code, "\n", "; ", -1)
 	return ls.MakeBlock(ls.MakeFilter("ruby", ls.Params{
-		"code": r.Code,
+		"code": code,
 	})), nil
 }
 
