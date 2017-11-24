@@ -70,22 +70,19 @@ ingest.pipeline.nginx_set_remote_ip:
 
 logstash.pipeline.nginx_set_remote_ip:
 - ruby.code: |-
+    ips = event.get('[nginx][access][remote_ip_list]')
     found = false
-    ips = event.get("[nginx][access][remote_ip_list]")
-    ips.each do |ip|
-      begin
-        a, b = ip.split(".")
-        a, b = a.to_i, b.to_i
-      rescue
-        continue
-      end
+    ips.each { |ip|
+      a, b = ip.split('.') rescue continue
+      a, b = a.to_i, b.to_i rescue continue
 
-      found = a == 10 || a == 127 || (a == 192 && b == 168) || (a == 172 && (16 <= b && b <= 31))
-      if found
-        event.set("[nginx][access][remote_ip]") = ip
+      isPrivate = a == 10 || a == 127 || (a == 192 && b == 168) || (a == 172 && (16 <= b && b <= 31))
+      if !isPrivate
+        event.set('[nginx][access][remote_ip]', ip)
+        found = true
         break
       end
-    end
+    }
     if !found
-      event.set("[nginx][access][remote_ip]") = ips[0]
+      event.set('[nginx][access][remote_ip]', ips[0])
     end
