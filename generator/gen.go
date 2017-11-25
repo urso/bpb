@@ -38,10 +38,15 @@ func (g *Generator) MakeIngest(out io.Writer) error {
 	return ingest.Serialize(out, prog)
 }
 
-func (g *Generator) MakeLogstash(out io.Writer) error {
-	prog, err := g.CompileLogstash()
+func (g *Generator) MakeLogstash(out io.Writer, verbose bool) error {
+	prog, err := g.CompileLogstash(verbose)
 	if err != nil {
 		return err
+	}
+
+	if verbose {
+		prog.Block = append(ls.MakeBlock(ls.MakePrintEventDebug("init")), prog.Block...)
+		prog.Block = append(prog.Block, ls.MakePrintEventDebug("emit"))
 	}
 
 	if g.ID != "" {
@@ -72,12 +77,12 @@ func (g *Generator) CompileIngest() (ingest.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (g *Generator) CompileLogstash() (ls.Pipeline, error) {
+func (g *Generator) CompileLogstash(verbose bool) (ls.Pipeline, error) {
 	pipeline := ls.Pipeline{
 		Description: g.Description,
 	}
 
-	processors, err := CompileLogstashProcessors(g.Processors)
+	processors, err := CompileLogstashProcessors(g.Processors, verbose)
 	if err != nil {
 		return pipeline, err
 	}
@@ -104,18 +109,17 @@ func CompileIngestProcessors(input []Processor) ([]ingest.Processor, error) {
 	return processors, nil
 }
 
-func CompileLogstashProcessors(input []Processor) (ls.Block, error) {
+func CompileLogstashProcessors(input []Processor, verbose bool) (ls.Block, error) {
 	if len(input) == 0 {
 		return nil, nil
 	}
 
 	var blk ls.Block
 	for _, gen := range input {
-		sub, err := gen.CompileLogstash()
+		sub, err := gen.CompileLogstash(verbose)
 		if err != nil {
 			return nil, err
 		}
-
 		blk = append(blk, sub...)
 	}
 

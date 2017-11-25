@@ -45,8 +45,8 @@ func (t *sel) CompileIngest() ([]ingest.Processor, error) {
 	return generator.CompileIngestProcessors(t.ingest)
 }
 
-func (t *sel) CompileLogstash() (ls.Block, error) {
-	return generator.CompileLogstashProcessors(t.logstash)
+func (t *sel) CompileLogstash(verbose bool) (ls.Block, error) {
+	return generator.CompileLogstashProcessors(t.logstash, verbose)
 }
 
 func defaultConfig() config {

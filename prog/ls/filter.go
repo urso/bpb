@@ -34,6 +34,14 @@ func MakeBlock(stmts ...Statement) Block {
 	return stmts
 }
 
+func MakeVerboseBlock(verbose bool, name string, stmts ...Statement) Block {
+	blk := Block(stmts)
+	if verbose {
+		blk = append(blk, MakePrintEventDebug(name))
+	}
+	return blk
+}
+
 func MakeFilter(name string, params Params) Filter {
 	return Filter{name, params}
 }

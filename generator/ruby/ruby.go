@@ -36,11 +36,13 @@ func (r *ruby) CompileIngest() ([]ingest.Processor, error) {
 	return nil, errors.New("ruby not supported on 'ingest' target")
 }
 
-func (r *ruby) CompileLogstash() (ls.Block, error) {
+func (r *ruby) CompileLogstash(verbose bool) (ls.Block, error) {
 	code := strings.Replace(r.Code, "\n", "; ", -1)
-	return ls.MakeBlock(ls.MakeFilter("ruby", ls.Params{
-		"code": code,
-	})), nil
+	return ls.MakeVerboseBlock(verbose, "ruby",
+		ls.MakeFilter("ruby", ls.Params{
+			"code": code,
+		}),
+	), nil
 }
 
 func defaultConfig() config {

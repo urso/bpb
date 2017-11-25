@@ -46,13 +46,13 @@ func (u *useragent) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-func (u *useragent) CompileLogstash() (ls.Block, error) {
+func (u *useragent) CompileLogstash(verbose bool) (ls.Block, error) {
 	params := ls.Params{
 		"source": ls.NormalizeField(u.Field),
 	}
 	params.Target(u.To)
 	params.DropField(u.DropField, u.Field)
-	return ls.MakeBlock(ls.MakeFilter("useragent", params)), nil
+	return ls.MakeVerboseBlock(verbose, "useragent", ls.MakeFilter("useragent", params)), nil
 }
 
 func defaultConfig() config {

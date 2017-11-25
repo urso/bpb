@@ -43,12 +43,14 @@ func (r *rename) CompileIngest() ([]ingest.Processor, error) {
 	return ingest.MakeSingleProcessor("rename", params), nil
 }
 
-func (r *rename) CompileLogstash() (ls.Block, error) {
-	return ls.MakeBlock(ls.MakeFilter("mutate", ls.Params{
-		"rename": ls.Params{
-			ls.NormalizeField(r.Field): ls.NormalizeField(r.To),
-		},
-	})), nil
+func (r *rename) CompileLogstash(verbose bool) (ls.Block, error) {
+	return ls.MakeVerboseBlock(verbose, "rename",
+		ls.MakeFilter("mutate", ls.Params{
+			"rename": ls.Params{
+				ls.NormalizeField(r.Field): ls.NormalizeField(r.To),
+			},
+		}),
+	), nil
 }
 
 func defaultConfig() config {

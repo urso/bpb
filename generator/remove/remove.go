@@ -35,10 +35,10 @@ func (r *remove) CompileIngest() ([]ingest.Processor, error) {
 	}), nil
 }
 
-func (r *remove) CompileLogstash() (ls.Block, error) {
+func (r *remove) CompileLogstash(verbose bool) (ls.Block, error) {
 	params := ls.Params{}
 	params.RemoveField(r.Field)
-	return ls.MakeBlock(ls.MakeFilter("mutate", params)), nil
+	return ls.MakeVerboseBlock(verbose, "remove", ls.MakeFilter("mutate", params)), nil
 }
 
 func defaultConfig() config {

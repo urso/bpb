@@ -77,7 +77,7 @@ func (s *split) compileIngestSeparator() ingest.Processor {
 	})
 }
 
-func (s *split) CompileLogstash() (ls.Block, error) {
+func (s *split) CompileLogstash(verbose bool) (ls.Block, error) {
 	var split ls.Filter
 	if s.Regex != "" {
 		split = s.compileLogstashRegex()
@@ -86,7 +86,7 @@ func (s *split) CompileLogstash() (ls.Block, error) {
 	}
 
 	split.Params.DropField(s.DropField, s.Field)
-	return ls.MakeBlock(split), nil
+	return ls.MakeVerboseBlock(verbose, "split", split), nil
 }
 
 func (s *split) compileLogstashRegex() ls.Filter {

@@ -29,6 +29,13 @@ func NormalizeField(field string) string {
 	return strings.Join(sub, "")
 }
 
+func MakePrintEventDebug(name string) Filter {
+	return MakeFilter("ruby", Params{
+		"init": `require 'json'`,
+		"code": fmt.Sprintf(`puts '%v'; puts JSON.pretty_generate(event); puts '=' * 80`, name),
+	})
+}
+
 func Serialize(out io.Writer, p Pipeline) error {
 	ctx := &formatCtx{
 		out:    out,

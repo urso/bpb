@@ -16,7 +16,7 @@ type Factory func(config *common.Config) (Processor, error)
 
 type Processor interface {
 	CompileIngest() ([]ingest.Processor, error)
-	CompileLogstash() (ls.Block, error)
+	CompileLogstash(verbose bool) (ls.Block, error)
 }
 
 func Register(name string, f Factory) {

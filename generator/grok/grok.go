@@ -70,7 +70,7 @@ func (g *grok) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-func (g *grok) CompileLogstash() (ls.Block, error) {
+func (g *grok) CompileLogstash(verbose bool) (ls.Block, error) {
 	params := ls.Params{
 		"match": map[string]interface{}{
 			ls.NormalizeField(g.Field): g.Patterns,
@@ -92,7 +92,8 @@ func (g *grok) CompileLogstash() (ls.Block, error) {
 	if g.IgnoreMissing {
 		blk = ls.IgnoreMissing(g.Field, blk)
 	}
-	return blk, nil
+
+	return ls.MakeVerboseBlock(verbose, "grok", blk...), nil
 }
 
 func defaultConfig() config {
