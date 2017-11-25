@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -35,12 +34,12 @@ func cmdIngest() *cobra.Command {
 		Short: "Run pipeline",
 		Long:  "Run ingest pipeline with Elasticsearch Ingest Node and sample events. This command uses the simulate API",
 		Run: runWithPipeline(func(gen *generator.Generator) error {
-			return ingestRun(gen, host, verbose, eventFormat, inFile)
+			return ingestRun(gen, host, verbose, inFile, eventFormat)
 		}),
 	}
-	cmdRun.PersistentFlags().StringVar(&eventFormat, "format", "plain", "event format (one of plain or json)")
-	cmdRun.PersistentFlags().StringVarP(&inFile, "in", "i", "", "event input file")
 	cmdRun.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Ingest node verbose execution mode")
+	cmdRun.PersistentFlags().StringVarP(&inFile, "in", "i", "", "event input file")
+	cmdRun.PersistentFlags().StringVar(&eventFormat, "format", "plain", "event format (one of plain or json)")
 
 	cmdInstall := &cobra.Command{
 		Use:   "install",
@@ -73,8 +72,8 @@ func ingestRun(
 	gen *generator.Generator,
 	host string,
 	verbose bool,
-	eventFormat string,
 	inFile string,
+	eventFormat string,
 ) error {
 	prog, err := gen.CompileIngest()
 	if err != nil {
@@ -149,59 +148,4 @@ func ingestInstall(
 	}
 
 	return nil
-}
-
-func readEvents(format, inFile string) ([]map[string]interface{}, error) {
-	type reader func(io.Reader) ([]map[string]interface{}, error)
-	readers := map[string]reader{
-		"plain": readPlainEvents,
-		"json":  readJSONEvents,
-	}
-
-	r := readers[format]
-	if r == nil {
-		return nil, fmt.Errorf("format '%v' not supported", format)
-	}
-
-	var eventSource io.Reader = os.Stdin
-	if inFile != "" {
-		f, err := os.Open(inFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer f.Close()
-		eventSource = f
-	}
-	return r(eventSource)
-}
-
-func readPlainEvents(in io.Reader) ([]map[string]interface{}, error) {
-	content, err := ioutil.ReadAll(in)
-	if err != nil {
-		return nil, err
-	}
-
-	var events []map[string]interface{}
-	for _, line := range bytes.Split(content, []byte{'\n'}) {
-		if len(line) > 0 {
-			events = append(events, map[string]interface{}{
-				"message": string(line),
-			})
-		}
-	}
-	return events, nil
-}
-
-func readJSONEvents(in io.Reader) ([]map[string]interface{}, error) {
-	var events []map[string]interface{}
-	dec := json.NewDecoder(in)
-	for dec.More() {
-		var tmp map[string]interface{}
-		if err := dec.Decode(&tmp); err != nil {
-			return nil, err
-		}
-		events = append(events, tmp)
-	}
-	return events, nil
 }

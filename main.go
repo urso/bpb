@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -27,27 +26,6 @@ func main() {
 	main := cobra.Command{Short: "beats pipeline builder"}
 	main.AddCommand(cmdLogstash(), cmdIngest())
 	main.Execute()
-}
-
-func cmdLogstash() *cobra.Command {
-	var pipelineID string
-
-	cmdGenerate := &cobra.Command{
-		Use:   "generate",
-		Short: "Generate logstash filter configuration",
-		Run: runWithPipeline(func(gen *generator.Generator) error {
-			gen.ID = pipelineID
-			return gen.MakeLogstash(os.Stdout)
-		}),
-	}
-
-	cmd := &cobra.Command{
-		Use:   "logstash",
-		Short: "Logstash Mode",
-	}
-	cmd.PersistentFlags().StringVar(&pipelineID, "id", "", "pipeline ID")
-	cmd.AddCommand(cmdGenerate)
-	return cmd
 }
 
 func runWithPipeline(
