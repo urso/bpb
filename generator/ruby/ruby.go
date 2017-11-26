@@ -36,9 +36,10 @@ func (r *ruby) CompileIngest() ([]ingest.Processor, error) {
 	return nil, errors.New("ruby not supported on 'ingest' target")
 }
 
-func (r *ruby) CompileLogstash(verbose bool) (ls.Block, error) {
+// failure tag: config via `tag_on_exception` (default: `_rubyexception`)
+func (r *ruby) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	code := strings.Replace(r.Code, "\n", "; ", -1)
-	return ls.MakeVerboseBlock(verbose, "ruby",
+	return ls.MakeVerboseBlock(ctx.Verbose, "ruby",
 		ls.MakeFilter("ruby", ls.Params{
 			"code": code,
 		}),

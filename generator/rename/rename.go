@@ -43,8 +43,9 @@ func (r *rename) CompileIngest() ([]ingest.Processor, error) {
 	return ingest.MakeSingleProcessor("rename", params), nil
 }
 
-func (r *rename) CompileLogstash(verbose bool) (ls.Block, error) {
-	return ls.MakeVerboseBlock(verbose, "rename",
+// failure tag: none, need to generate custom tag handling
+func (r *rename) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+	return ls.MakeVerboseBlock(ctx.Verbose, "rename",
 		ls.MakeFilter("mutate", ls.Params{
 			"rename": ls.Params{
 				ls.NormalizeField(r.Field): ls.NormalizeField(r.To),

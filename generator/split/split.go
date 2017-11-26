@@ -77,7 +77,7 @@ func (s *split) compileIngestSeparator() ingest.Processor {
 	})
 }
 
-func (s *split) CompileLogstash(verbose bool) (ls.Block, error) {
+func (s *split) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	var split ls.Filter
 	if s.Regex != "" {
 		split = s.compileLogstashRegex()
@@ -86,9 +86,10 @@ func (s *split) CompileLogstash(verbose bool) (ls.Block, error) {
 	}
 
 	split.Params.DropField(s.DropField, s.Field)
-	return ls.MakeVerboseBlock(verbose, "split", split), nil
+	return ls.MakeVerboseBlock(ctx.Verbose, "split", split), nil
 }
 
+// failure tag: config via `tag_on_exception` (default: `_rubyexception`)
 func (s *split) compileLogstashRegex() ls.Filter {
 	source, target := s.Field, s.To
 	if target == "" {
@@ -104,6 +105,7 @@ func (s *split) compileLogstashRegex() ls.Filter {
 	})
 }
 
+// failure tag: not configurable... potentially multiple (_split_type_failure and on exception?)
 func (s *split) compileLogstashSeparator() ls.Filter {
 	params := ls.Params{"terminator": s.Separator}
 	if s.To != "" {

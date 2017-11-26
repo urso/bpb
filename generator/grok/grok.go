@@ -70,7 +70,8 @@ func (g *grok) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-func (g *grok) CompileLogstash(verbose bool) (ls.Block, error) {
+// failure tag: config via `tag_on_failure` (default: `_grokparsefailure`)
+func (g *grok) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	params := ls.Params{
 		"match": map[string]interface{}{
 			ls.NormalizeField(g.Field): g.Patterns,
@@ -93,7 +94,7 @@ func (g *grok) CompileLogstash(verbose bool) (ls.Block, error) {
 		blk = ls.IgnoreMissing(g.Field, blk)
 	}
 
-	return ls.MakeVerboseBlock(verbose, "grok", blk...), nil
+	return ls.MakeVerboseBlock(ctx.Verbose, "grok", blk...), nil
 }
 
 func defaultConfig() config {

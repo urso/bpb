@@ -52,7 +52,7 @@ func (s *script) CompileIngest() ([]ingest.Processor, error) {
 	return ingest.MakeSingleProcessor("script", params), nil
 }
 
-func (s *script) CompileLogstash(verbose bool) (ls.Block, error) {
+func (s *script) CompileLogstash(_ *generator.LogstashCtx) (ls.Block, error) {
 	return nil, errors.New("script not supported on 'logstash' target")
 }
 

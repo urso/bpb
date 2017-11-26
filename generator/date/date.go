@@ -75,7 +75,8 @@ func (d *date) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-func (d *date) CompileLogstash(verbose bool) (ls.Block, error) {
+// failure tag: config via `tag_on_failure` (default: `_dateparsefailure`)
+func (d *date) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	params := ls.Params{
 		"match": append([]string{ls.NormalizeField(d.Field)}, d.Formats...),
 	}
@@ -89,7 +90,7 @@ func (d *date) CompileLogstash(verbose bool) (ls.Block, error) {
 		params["locale"] = d.Locale
 	}
 
-	return ls.MakeVerboseBlock(verbose, "date",
+	return ls.MakeVerboseBlock(ctx.Verbose, "date",
 		ls.MakeFilter("date", params),
 	), nil
 }

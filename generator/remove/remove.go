@@ -35,10 +35,11 @@ func (r *remove) CompileIngest() ([]ingest.Processor, error) {
 	}), nil
 }
 
-func (r *remove) CompileLogstash(verbose bool) (ls.Block, error) {
+// failure tag: none, need to generate custom tag handling
+func (r *remove) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	params := ls.Params{}
 	params.RemoveField(r.Field)
-	return ls.MakeVerboseBlock(verbose, "remove", ls.MakeFilter("mutate", params)), nil
+	return ls.MakeVerboseBlock(ctx.Verbose, "remove", ls.MakeFilter("mutate", params)), nil
 }
 
 func defaultConfig() config {

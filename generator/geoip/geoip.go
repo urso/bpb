@@ -46,13 +46,16 @@ func (u *geoip) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-func (g *geoip) CompileLogstash(verbose bool) (ls.Block, error) {
+// failure tag: config via `tag_on_failure` (default: `_geoip_lookup_failure`)
+func (g *geoip) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 	params := ls.Params{
 		"source": ls.NormalizeField(g.Field),
 	}
 	params.Target(g.To)
 	params.DropField(g.DropField, g.Field)
-	return ls.MakeVerboseBlock(verbose, "geoip", ls.MakeFilter("geoip", params)), nil
+	return ls.MakeVerboseBlock(ctx.Verbose, "geoip",
+		ls.MakeFilter("geoip", params),
+	), nil
 }
 
 func defaultConfig() config {

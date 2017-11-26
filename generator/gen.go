@@ -82,7 +82,9 @@ func (g *Generator) CompileLogstash(verbose bool) (ls.Pipeline, error) {
 		Description: g.Description,
 	}
 
-	processors, err := CompileLogstashProcessors(g.Processors, verbose)
+	ctx := &LogstashCtx{Verbose: verbose}
+
+	processors, err := CompileLogstashProcessors(ctx, g.Processors)
 	if err != nil {
 		return pipeline, err
 	}
@@ -109,14 +111,14 @@ func CompileIngestProcessors(input []Processor) ([]ingest.Processor, error) {
 	return processors, nil
 }
 
-func CompileLogstashProcessors(input []Processor, verbose bool) (ls.Block, error) {
+func CompileLogstashProcessors(ctx *LogstashCtx, input []Processor) (ls.Block, error) {
 	if len(input) == 0 {
 		return nil, nil
 	}
 
 	var blk ls.Block
 	for _, gen := range input {
-		sub, err := gen.CompileLogstash(verbose)
+		sub, err := gen.CompileLogstash(ctx)
 		if err != nil {
 			return nil, err
 		}
