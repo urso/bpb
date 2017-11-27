@@ -31,6 +31,8 @@ func makeUserAgent(cfg *common.Config) (generator.Processor, error) {
 	return &useragent{config}, nil
 }
 
+func (u *useragent) Name() string { return "useragent" }
+
 func (u *useragent) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"field": u.Field,
@@ -47,15 +49,24 @@ func (u *useragent) CompileIngest() ([]ingest.Processor, error) {
 }
 
 // failure tag: none, need to generate custom tag handling
-func (u *useragent) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+func (u *useragent) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_useragent")
+
 	params := ls.Params{
 		"source": ls.NormalizeField(u.Field),
 	}
 	params.Target(u.To)
 	params.DropField(u.DropField, u.Field)
-	return ls.MakeVerboseBlock(ctx.Verbose, "useragent",
-		ls.MakeFilter("useragent", params),
-	), nil
+	params.RemoveTag(failureTag)
+
+	blk := ls.MakeBlock(ls.MakeFilter("useragent", params))
+	blk = ls.RunWithTags(blk, failureTag)
+	blk = ls.MakeVerboseBlock(ctx.Verbose, "useragent", blk)
+
+	return generator.FilterBlock{
+		Block:       blk,
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

@@ -16,6 +16,12 @@ type Generator struct {
 	Processors  []Processor
 }
 
+type Processor interface {
+	Name() string
+	CompileIngest() ([]ingest.Processor, error)
+	CompileLogstash(ctx *LogstashCtx) (FilterBlock, error)
+}
+
 func New(descr string, processors []*common.Config) (*Generator, error) {
 	if len(processors) == 0 {
 		return nil, errors.New("no processors")
@@ -38,13 +44,13 @@ func (g *Generator) MakeIngest(out io.Writer) error {
 	return ingest.Serialize(out, prog)
 }
 
-func (g *Generator) MakeLogstash(out io.Writer, verbose bool) error {
-	prog, err := g.CompileLogstash(verbose)
+func (g *Generator) MakeLogstash(out io.Writer, ctx *LogstashCtx) error {
+	prog, err := g.CompileLogstash(ctx)
 	if err != nil {
 		return err
 	}
 
-	if verbose {
+	if ctx.Verbose {
 		prog.Block = append(ls.MakeBlock(ls.MakePrintEventDebug("init")), prog.Block...)
 		prog.Block = append(prog.Block, ls.MakePrintEventDebug("emit"))
 	}
@@ -77,19 +83,21 @@ func (g *Generator) CompileIngest() (ingest.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (g *Generator) CompileLogstash(verbose bool) (ls.Pipeline, error) {
+func (g *Generator) CompileLogstash(ctx *LogstashCtx) (ls.Pipeline, error) {
 	pipeline := ls.Pipeline{
 		Description: g.Description,
 	}
 
-	ctx := &LogstashCtx{Verbose: verbose}
+	onError := func(filter string, tags []string) FilterBlock {
+		return FilterBlock{}
+	}
 
-	processors, err := CompileLogstashProcessors(ctx, g.Processors)
+	processors, err := CompileLogstashProcessors(ctx, onError, g.Processors)
 	if err != nil {
 		return pipeline, err
 	}
 
-	pipeline.Block = processors
+	pipeline.Block = processors.Block
 	return pipeline, nil
 }
 
@@ -109,21 +117,4 @@ func CompileIngestProcessors(input []Processor) ([]ingest.Processor, error) {
 	}
 
 	return processors, nil
-}
-
-func CompileLogstashProcessors(ctx *LogstashCtx, input []Processor) (ls.Block, error) {
-	if len(input) == 0 {
-		return nil, nil
-	}
-
-	var blk ls.Block
-	for _, gen := range input {
-		sub, err := gen.CompileLogstash(ctx)
-		if err != nil {
-			return nil, err
-		}
-		blk = append(blk, sub...)
-	}
-
-	return blk, nil
 }

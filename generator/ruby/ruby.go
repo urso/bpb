@@ -32,18 +32,22 @@ func makeRuby(cfg *common.Config) (generator.Processor, error) {
 	return &ruby{config}, nil
 }
 
+func (r *ruby) Name() string { return "ruby" }
+
 func (r *ruby) CompileIngest() ([]ingest.Processor, error) {
 	return nil, errors.New("ruby not supported on 'ingest' target")
 }
 
 // failure tag: config via `tag_on_exception` (default: `_rubyexception`)
-func (r *ruby) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+func (r *ruby) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_ruby")
 	code := strings.Replace(r.Code, "\n", "; ", -1)
-	return ls.MakeVerboseBlock(ctx.Verbose, "ruby",
-		ls.MakeFilter("ruby", ls.Params{
-			"code": code,
-		}),
-	), nil
+
+	blk := generator.MakeRuby(ctx, code, failureTag, nil)
+	return generator.FilterBlock{
+		Block:       ls.MakeVerboseBlock(ctx.Verbose, "ruby", blk...),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

@@ -41,12 +41,26 @@ func makeSelect(cfg *common.Config) (generator.Processor, error) {
 	return &sel{ingest: ingest, logstash: logstash}, nil
 }
 
+func (s *sel) Name() string { return "select" }
+
 func (t *sel) CompileIngest() ([]ingest.Processor, error) {
 	return generator.CompileIngestProcessors(t.ingest)
 }
 
-func (t *sel) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
-	return generator.CompileLogstashProcessors(ctx, t.logstash)
+func (t *sel) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTags := []string{ctx.CreateTag("_failure_select")}
+
+	onError := func(filter string, tags []string) generator.FilterBlock {
+		return generator.FilterBlock{
+			Block: ls.MakeBlock(
+				ls.MakeFilter("mutate", ls.Params{
+					"add_tag": failureTags,
+				}),
+			),
+			FailureTags: failureTags,
+		}
+	}
+	return generator.CompileLogstashProcessors(ctx, onError, t.logstash)
 }
 
 func defaultConfig() config {

@@ -53,6 +53,8 @@ func makeDate(cfg *common.Config) (generator.Processor, error) {
 	}, nil
 }
 
+func (d *date) Name() string { return "date" }
+
 func (d *date) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"field":   d.Field,
@@ -75,10 +77,12 @@ func (d *date) CompileIngest() ([]ingest.Processor, error) {
 	return ps, nil
 }
 
-// failure tag: config via `tag_on_failure` (default: `_dateparsefailure`)
-func (d *date) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+func (d *date) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_date")
+
 	params := ls.Params{
-		"match": append([]string{ls.NormalizeField(d.Field)}, d.Formats...),
+		"match":          append([]string{ls.NormalizeField(d.Field)}, d.Formats...),
+		"tag_on_failure": failureTag,
 	}
 	params.Target(d.To)
 	params.DropField(d.DropField, d.Field)
@@ -90,9 +94,12 @@ func (d *date) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 		params["locale"] = d.Locale
 	}
 
-	return ls.MakeVerboseBlock(ctx.Verbose, "date",
-		ls.MakeFilter("date", params),
-	), nil
+	return generator.FilterBlock{
+		Block: ls.MakeVerboseBlock(ctx.Verbose, "date",
+			ls.MakeFilter("date", params),
+		),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/urso/bpb/generator"
 	"github.com/urso/bpb/prog/ingest"
-	"github.com/urso/bpb/prog/ls"
 
 	"github.com/elastic/beats/libbeat/common"
 )
@@ -38,6 +37,8 @@ func makeScript(cfg *common.Config) (generator.Processor, error) {
 	return &script{config: config}, nil
 }
 
+func (s *script) Name() string { return "script" }
+
 func (s *script) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"lang": "painless",
@@ -52,8 +53,8 @@ func (s *script) CompileIngest() ([]ingest.Processor, error) {
 	return ingest.MakeSingleProcessor("script", params), nil
 }
 
-func (s *script) CompileLogstash(_ *generator.LogstashCtx) (ls.Block, error) {
-	return nil, errors.New("script not supported on 'logstash' target")
+func (s *script) CompileLogstash(_ *generator.LogstashCtx) (generator.FilterBlock, error) {
+	return generator.FilterBlock{}, errors.New("script not supported on 'logstash' target")
 }
 
 func defaultConfig() config {

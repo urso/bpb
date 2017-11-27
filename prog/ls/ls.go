@@ -36,6 +36,13 @@ func MakePrintEventDebug(name string) Filter {
 	})
 }
 
+func RunWithTags(blk Block, tags ...string) Block {
+	new := MakeBlock(MakeFilter("mutate", Params{
+		"add_tag": tags,
+	}))
+	return append(new, blk)
+}
+
 func Serialize(out io.Writer, p Pipeline) error {
 	ctx := &formatCtx{
 		out:    out,

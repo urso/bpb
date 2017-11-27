@@ -31,6 +31,8 @@ func makeRename(cfg *common.Config) (generator.Processor, error) {
 	return &rename{config}, nil
 }
 
+func (r *rename) Name() string { return "rename" }
+
 func (r *rename) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"field":        r.Field,
@@ -44,14 +46,21 @@ func (r *rename) CompileIngest() ([]ingest.Processor, error) {
 }
 
 // failure tag: none, need to generate custom tag handling
-func (r *rename) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
-	return ls.MakeVerboseBlock(ctx.Verbose, "rename",
-		ls.MakeFilter("mutate", ls.Params{
-			"rename": ls.Params{
-				ls.NormalizeField(r.Field): ls.NormalizeField(r.To),
-			},
-		}),
-	), nil
+func (r *rename) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_rename")
+
+	mutate := ls.Params{
+		"rename": ls.Params{
+			ls.NormalizeField(r.Field): ls.NormalizeField(r.To),
+		},
+	}
+	mutate.RemoveTag(failureTag)
+
+	blk := ls.RunWithTags(ls.MakeBlock(ls.MakeFilter("mutate", mutate)), failureTag)
+	return generator.FilterBlock{
+		Block:       ls.MakeVerboseBlock(ctx.Verbose, "rename", blk...),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

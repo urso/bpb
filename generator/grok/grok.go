@@ -51,6 +51,8 @@ func makeGrok(cfg *common.Config) (generator.Processor, error) {
 	}, nil
 }
 
+func (g *grok) Name() string { return "grok" }
+
 func (g *grok) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"field":    g.Field,
@@ -71,11 +73,14 @@ func (g *grok) CompileIngest() ([]ingest.Processor, error) {
 }
 
 // failure tag: config via `tag_on_failure` (default: `_grokparsefailure`)
-func (g *grok) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+func (g *grok) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_grok")
+
 	params := ls.Params{
 		"match": map[string]interface{}{
 			ls.NormalizeField(g.Field): g.Patterns,
 		},
+		"tag_on_failure": failureTag,
 	}
 	if len(g.Definitions) > 0 {
 		params["pattern_definitions"] = g.Definitions
@@ -94,7 +99,10 @@ func (g *grok) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
 		blk = ls.IgnoreMissing(g.Field, blk)
 	}
 
-	return ls.MakeVerboseBlock(ctx.Verbose, "grok", blk...), nil
+	return generator.FilterBlock{
+		Block:       ls.MakeVerboseBlock(ctx.Verbose, "grok", blk...),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

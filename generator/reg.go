@@ -4,24 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/urso/bpb/prog/ingest"
-	"github.com/urso/bpb/prog/ls"
-
 	"github.com/elastic/beats/libbeat/common"
 )
 
 var processors = map[string]Factory{}
 
 type Factory func(config *common.Config) (Processor, error)
-
-type LogstashCtx struct {
-	Verbose bool
-}
-
-type Processor interface {
-	CompileIngest() ([]ingest.Processor, error)
-	CompileLogstash(ctx *LogstashCtx) (ls.Block, error)
-}
 
 func Register(name string, f Factory) {
 	if processors[name] != nil {

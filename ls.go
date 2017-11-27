@@ -17,6 +17,7 @@ func cmdLogstash() *cobra.Command {
 	var (
 		pipelineID string
 		verbose    bool
+		noError    bool
 	)
 
 	cmdGenerate := &cobra.Command{
@@ -24,7 +25,11 @@ func cmdLogstash() *cobra.Command {
 		Short: "Generate logstash filter configuration",
 		Run: runWithPipeline(func(gen *generator.Generator) error {
 			gen.ID = pipelineID
-			return gen.MakeLogstash(os.Stdout, verbose)
+			ctx := &generator.LogstashCtx{
+				Verbose:       verbose,
+				DisableErrors: noError,
+			}
+			return gen.MakeLogstash(os.Stdout, ctx)
 		}),
 	}
 
@@ -37,7 +42,11 @@ func cmdLogstash() *cobra.Command {
 		Use:   "run",
 		Short: "Run pipeline",
 		Run: runWithPipeline(func(gen *generator.Generator) error {
-			return lsRun(lsHome, gen, verbose, inFile, eventFormat)
+			ctx := &generator.LogstashCtx{
+				Verbose:       verbose,
+				DisableErrors: noError,
+			}
+			return lsRun(lsHome, gen, ctx, inFile, eventFormat)
 		}),
 	}
 	cmdRun.PersistentFlags().StringVar(&lsHome, "lshome", "", "logstash home path")
@@ -50,6 +59,7 @@ func cmdLogstash() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&pipelineID, "id", "", "pipeline ID")
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode - create debug prints on each filter")
+	cmd.PersistentFlags().BoolVar(&noError, "noerr", false, "disable filter error handling")
 	cmd.AddCommand(cmdGenerate, cmdRun)
 	return cmd
 }
@@ -57,7 +67,7 @@ func cmdLogstash() *cobra.Command {
 func lsRun(
 	lsHome string,
 	gen *generator.Generator,
-	verbose bool,
+	ctx *generator.LogstashCtx,
 	inFile, eventFormat string,
 ) error {
 	var err error
@@ -95,7 +105,7 @@ func lsRun(
 	if _, err := io.WriteString(confFile, `input { stdin { codec => json } }`); err != nil {
 		return err
 	}
-	if err := gen.MakeLogstash(confFile, verbose); err != nil {
+	if err := gen.MakeLogstash(confFile, ctx); err != nil {
 		return err
 	}
 	if _, err := io.WriteString(confFile, `output { stdout { codec => rubydebug { metadata => true } } }`); err != nil {

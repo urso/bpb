@@ -37,6 +37,8 @@ func makeSplit(cfg *common.Config) (generator.Processor, error) {
 	return &split{config}, nil
 }
 
+func (s *split) Name() string { return "split" }
+
 func (s *split) CompileIngest() ([]ingest.Processor, error) {
 	var split ingest.Processor
 	if s.Regex != "" {
@@ -77,20 +79,23 @@ func (s *split) compileIngestSeparator() ingest.Processor {
 	})
 }
 
-func (s *split) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
-	var split ls.Filter
+func (s *split) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_split")
+
+	var split ls.Block
 	if s.Regex != "" {
-		split = s.compileLogstashRegex()
+		split = s.compileLogstashRegex(ctx, failureTag)
 	} else {
-		split = s.compileLogstashSeparator()
+		split = s.compileLogstashSeparator(failureTag)
 	}
 
-	split.Params.DropField(s.DropField, s.Field)
-	return ls.MakeVerboseBlock(ctx.Verbose, "split", split), nil
+	return generator.FilterBlock{
+		Block:       ls.MakeVerboseBlock(ctx.Verbose, "split", split),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
-// failure tag: config via `tag_on_exception` (default: `_rubyexception`)
-func (s *split) compileLogstashRegex() ls.Filter {
+func (s *split) compileLogstashRegex(ctx *generator.LogstashCtx, failureTag string) ls.Block {
 	source, target := s.Field, s.To
 	if target == "" {
 		target = source
@@ -100,18 +105,24 @@ func (s *split) compileLogstashRegex() ls.Filter {
 	target = ls.NormalizeField(target)
 
 	code := fmt.Sprintf(`event.set('%v', event.get('%v').split(/%v/))`, target, source, s.Regex)
-	return ls.MakeFilter("ruby", ls.Params{
-		"code": code,
-	})
+
+	params := ls.Params{}
+	params.DropField(s.DropField, s.Field)
+	return generator.MakeRuby(ctx, code, failureTag, params)
 }
 
 // failure tag: not configurable... potentially multiple (_split_type_failure and on exception?)
-func (s *split) compileLogstashSeparator() ls.Filter {
+func (s *split) compileLogstashSeparator(failureTag string) ls.Block {
 	params := ls.Params{"terminator": s.Separator}
 	if s.To != "" {
 		params.Target(s.To)
 	}
-	return ls.MakeFilter("split", params)
+	params.DropField(s.DropField, s.Field)
+	params.RemoveTag(failureTag)
+
+	blk := ls.MakeBlock(ls.MakeFilter("split", params))
+	ls.RunWithTags(blk, failureTag)
+	return blk
 }
 
 func defaultConfig() config {

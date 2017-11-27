@@ -31,6 +31,8 @@ func makeGeoip(cfg *common.Config) (generator.Processor, error) {
 	return &geoip{config}, nil
 }
 
+func (g *geoip) Name() string { return "geoip" }
+
 func (u *geoip) CompileIngest() ([]ingest.Processor, error) {
 	params := map[string]interface{}{
 		"field": u.Field,
@@ -47,15 +49,21 @@ func (u *geoip) CompileIngest() ([]ingest.Processor, error) {
 }
 
 // failure tag: config via `tag_on_failure` (default: `_geoip_lookup_failure`)
-func (g *geoip) CompileLogstash(ctx *generator.LogstashCtx) (ls.Block, error) {
+func (g *geoip) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
+	failureTag := ctx.CreateTag("_failure_geoip")
+
 	params := ls.Params{
-		"source": ls.NormalizeField(g.Field),
+		"source":         ls.NormalizeField(g.Field),
+		"tag_on_failure": failureTag,
 	}
 	params.Target(g.To)
 	params.DropField(g.DropField, g.Field)
-	return ls.MakeVerboseBlock(ctx.Verbose, "geoip",
-		ls.MakeFilter("geoip", params),
-	), nil
+	return generator.FilterBlock{
+		Block: ls.MakeVerboseBlock(ctx.Verbose, "geoip",
+			ls.MakeFilter("geoip", params),
+		),
+		FailureTags: []string{failureTag},
+	}, nil
 }
 
 func defaultConfig() config {

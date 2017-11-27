@@ -59,7 +59,23 @@ func (p Params) DropField(drop bool, name string) {
 }
 
 func (p Params) RemoveField(name string) {
-	p["remove_field"] = []string{NormalizeField(name)}
+	p.addNameTo("remove_field", NormalizeField(name))
+
+}
+
+func (p Params) RemoveTag(name string) {
+	p.addNameTo("remove_tag", name)
+}
+
+func (p Params) addNameTo(setting, name string) {
+	ifc, exists := p[setting]
+	if !exists {
+		p[setting] = []string{name}
+		return
+	}
+
+	fields := ifc.([]string)
+	p[setting] = append(fields, name)
 }
 
 func (b Block) format(ctx *formatCtx) error {
