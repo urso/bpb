@@ -139,9 +139,13 @@ func makeLSFailTagsCondition(tags []string) string {
 // TODO: add support for versioning, tag_on_exception not available in 6.0 yet
 func MakeRuby(ctx *LogstashCtx, code, failureTag string, extra ls.Params) ls.Block {
 	params := ls.Params{
-		"code":       code,
-		"remove_tag": []string{failureTag},
+		"code": code,
 	}
+
+	if failureTag != "" {
+		params.RemoveTag(failureTag)
+	}
+
 	for k, v := range extra {
 		params[k] = v
 	}
@@ -152,4 +156,14 @@ func MakeRuby(ctx *LogstashCtx, code, failureTag string, extra ls.Params) ls.Blo
 		}),
 		ls.MakeFilter("ruby", params),
 	)
+}
+
+func MakeLSErrorReporter(ctx *LogstashCtx) func(string, []string) FilterBlock {
+	return func(filter string, tags []string) FilterBlock {
+		msg := fmt.Sprintf(`filter %v (tags: %v) failed`, filter, tags)
+		code := fmt.Sprintf(`msg='%v'; field='[error][message]'; old=event.get(field); event.set(field, old ? [event.get(field), msg].join(' : ') : msg)`, msg)
+		return FilterBlock{
+			Block: MakeRuby(ctx, code, "", nil),
+		}
+	}
 }

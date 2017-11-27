@@ -88,10 +88,7 @@ func (g *Generator) CompileLogstash(ctx *LogstashCtx) (ls.Pipeline, error) {
 		Description: g.Description,
 	}
 
-	onError := func(filter string, tags []string) FilterBlock {
-		return FilterBlock{}
-	}
-
+	onError := MakeLSErrorReporter(ctx)
 	processors, err := CompileLogstashProcessors(ctx, onError, g.Processors)
 	if err != nil {
 		return pipeline, err

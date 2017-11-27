@@ -49,16 +49,14 @@ func (t *sel) CompileIngest() ([]ingest.Processor, error) {
 
 func (t *sel) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
 	failureTags := []string{ctx.CreateTag("_failure_select")}
-
+	reporter := generator.MakeLSErrorReporter(ctx)
 	onError := func(filter string, tags []string) generator.FilterBlock {
-		return generator.FilterBlock{
-			Block: ls.MakeBlock(
-				ls.MakeFilter("mutate", ls.Params{
-					"add_tag": failureTags,
-				}),
-			),
-			FailureTags: failureTags,
-		}
+		fb := reporter(filter, tags)
+		fb.AddFilter(ls.MakeFilter("mutate", ls.Params{
+			"add_tag": failureTags,
+		}))
+		fb.AddTags(failureTags...)
+		return fb
 	}
 	return generator.CompileLogstashProcessors(ctx, onError, t.logstash)
 }
