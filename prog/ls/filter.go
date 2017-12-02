@@ -64,7 +64,9 @@ func (p Params) RemoveField(name string) {
 }
 
 func (p Params) RemoveTag(name string) {
-	p.addNameTo("remove_tag", name)
+	if name != "" {
+		p.addNameTo("remove_tag", name)
+	}
 }
 
 func (p Params) addNameTo(setting, name string) {

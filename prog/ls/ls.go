@@ -37,8 +37,19 @@ func MakePrintEventDebug(name string) Filter {
 }
 
 func RunWithTags(blk Block, tags ...string) Block {
+	var validTags = make([]string, 0, len(tags))
+	for _, t := range tags {
+		if t != "" {
+			validTags = append(validTags, t)
+		}
+	}
+
+	if len(validTags) == 0 {
+		return blk
+	}
+
 	new := MakeBlock(MakeFilter("mutate", Params{
-		"add_tag": tags,
+		"add_tag": validTags,
 	}))
 	return append(new, blk)
 }

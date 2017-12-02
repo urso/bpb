@@ -66,11 +66,23 @@ func CompileLogstashProcessors(
 	// compile processors to individual blocks
 	blks := make([]FilterBlock, len(input))
 	for i, gen := range input {
-		var err error
-		blks[i], err = gen.CompileLogstash(ctx)
+		blk, err := gen.CompileLogstash(ctx)
 		if err != nil {
 			return FilterBlock{}, err
 		}
+
+		// filter empty tags
+		if tags := blk.FailureTags; len(tags) > 0 {
+			tmp := make([]string, 0, len(tags))
+			for _, t := range tags {
+				if t != "" {
+					tmp = append(tmp, t)
+				}
+			}
+			blk.FailureTags = tmp
+		}
+
+		blks[i] = blk
 	}
 
 	// create conditional per block that can fail
@@ -142,20 +154,19 @@ func MakeRuby(ctx *LogstashCtx, code, failureTag string, extra ls.Params) ls.Blo
 		"code": code,
 	}
 
-	if failureTag != "" {
-		params.RemoveTag(failureTag)
-	}
-
+	params.RemoveTag(failureTag)
 	for k, v := range extra {
 		params[k] = v
 	}
 
-	return ls.MakeBlock(
-		ls.MakeFilter("mutate", ls.Params{
+	blk := ls.MakeBlock()
+	if failureTag != "" {
+		blk = append(blk, ls.MakeFilter("mutate", ls.Params{
 			"add_tag": []string{failureTag},
-		}),
-		ls.MakeFilter("ruby", params),
-	)
+		}))
+	}
+
+	return append(blk, ls.MakeFilter("ruby", params))
 }
 
 func MakeLSErrorReporter(ctx *LogstashCtx) func(string, []string) FilterBlock {
