@@ -33,6 +33,7 @@ func Serialize(out io.Writer, p Pipeline) error {
 
 func RemoveField(name string) Processor {
 	return MakeProcessor("remove", map[string]interface{}{
-		"field": name,
+		"field":          name,
+		"ignore_failure": true,
 	})
 }
