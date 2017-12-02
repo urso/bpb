@@ -13,9 +13,10 @@ type useragent struct {
 }
 
 type config struct {
-	Field     string `validate:"required"`
-	To        string
-	DropField bool `config:"drop_field"`
+	Field         string `validate:"required"`
+	To            string
+	DropField     bool `config:"drop_field"`
+	IgnoreFailure bool `config:"ignore_failure"`
 }
 
 func init() {
@@ -40,6 +41,9 @@ func (u *useragent) CompileIngest() ([]ingest.Processor, error) {
 	if u.To != "" {
 		params["target_field"] = u.To
 	}
+	if u.IgnoreFailure {
+		params["ignore_failure"] = true
+	}
 
 	ps := ingest.MakeSingleProcessor("user_agent", params)
 	if u.DropField {
@@ -50,7 +54,10 @@ func (u *useragent) CompileIngest() ([]ingest.Processor, error) {
 
 // failure tag: none, need to generate custom tag handling
 func (u *useragent) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
-	failureTag := ctx.CreateTag("_failure_useragent")
+	var failureTag string
+	if !u.IgnoreFailure {
+		failureTag = ctx.CreateTag("_failure_useragent")
+	}
 
 	params := ls.Params{
 		"source": ls.NormalizeField(u.Field),

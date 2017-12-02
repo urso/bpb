@@ -11,21 +11,23 @@ import (
 )
 
 type date struct {
-	Field, To string
-	Formats   []string
-	Locale    string
-	Timezone  string
-	DropField bool
+	Field, To     string
+	Formats       []string
+	Locale        string
+	Timezone      string
+	DropField     bool
+	IgnoreFailure bool
 }
 
 type config struct {
-	Field     string `validate:"required"`
-	To        string
-	Format    string
-	Formats   []string
-	Locale    string
-	Timezone  string
-	DropField bool `config:"drop_field"`
+	Field         string `validate:"required"`
+	To            string
+	Format        string
+	Formats       []string
+	Locale        string
+	Timezone      string
+	DropField     bool `config:"drop_field"`
+	IgnoreFailure bool `config:"ignore_failure"`
 }
 
 func init() {
@@ -44,12 +46,13 @@ func makeDate(cfg *common.Config) (generator.Processor, error) {
 	}
 
 	return &date{
-		Field:     config.Field,
-		To:        config.To,
-		Formats:   formats,
-		Locale:    config.Locale,
-		Timezone:  config.Timezone,
-		DropField: config.DropField,
+		Field:         config.Field,
+		To:            config.To,
+		Formats:       formats,
+		Locale:        config.Locale,
+		Timezone:      config.Timezone,
+		DropField:     config.DropField,
+		IgnoreFailure: config.IgnoreFailure,
 	}, nil
 }
 
@@ -69,6 +72,9 @@ func (d *date) CompileIngest() ([]ingest.Processor, error) {
 	if d.Locale != "" {
 		params["locale"] = d.Locale
 	}
+	if d.IgnoreFailure {
+		params["ignore_failure"] = d.IgnoreFailure
+	}
 
 	ps := ingest.MakeSingleProcessor("date", params)
 	if d.DropField {
@@ -78,12 +84,18 @@ func (d *date) CompileIngest() ([]ingest.Processor, error) {
 }
 
 func (d *date) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
-	failureTag := ctx.CreateTag("_failure_date")
+	var failureTag string
+	if !d.IgnoreFailure {
+		failureTag = ctx.CreateTag("_failure_date")
+	}
 
 	params := ls.Params{
-		"match":          append([]string{ls.NormalizeField(d.Field)}, d.Formats...),
-		"tag_on_failure": failureTag,
+		"match": append([]string{ls.NormalizeField(d.Field)}, d.Formats...),
 	}
+	if failureTag != "" {
+		params["tag_on_failure"] = failureTag
+	}
+
 	params.Target(d.To)
 	params.DropField(d.DropField, d.Field)
 

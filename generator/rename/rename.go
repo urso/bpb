@@ -15,7 +15,8 @@ type rename struct {
 type config struct {
 	Field         string `validate:"required"`
 	To            string `validate:"required"`
-	IgnoreMissing bool
+	IgnoreMissing bool   `config:"ignore_missing"`
+	IgnoreFailure bool   `config:"ignore_failure"`
 }
 
 func init() {
@@ -41,13 +42,19 @@ func (r *rename) CompileIngest() ([]ingest.Processor, error) {
 	if r.IgnoreMissing {
 		params["ignore_missing"] = true
 	}
+	if r.IgnoreFailure {
+		params["ignore_failure"] = true
+	}
 
 	return ingest.MakeSingleProcessor("rename", params), nil
 }
 
 // failure tag: none, need to generate custom tag handling
 func (r *rename) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
-	failureTag := ctx.CreateTag("_failure_rename")
+	var failureTag string
+	if !r.IgnoreFailure {
+		failureTag = ctx.CreateTag("_failure_rename")
+	}
 
 	mutate := ls.Params{
 		"rename": ls.Params{
