@@ -10,9 +10,11 @@ import (
 	"github.com/urso/bpb/generator"
 
 	// import available processor types
+	_ "github.com/urso/bpb/generator/convert"
 	_ "github.com/urso/bpb/generator/date"
 	_ "github.com/urso/bpb/generator/geoip"
 	_ "github.com/urso/bpb/generator/grok"
+	_ "github.com/urso/bpb/generator/kv"
 	_ "github.com/urso/bpb/generator/remove"
 	_ "github.com/urso/bpb/generator/rename"
 	_ "github.com/urso/bpb/generator/ruby"
