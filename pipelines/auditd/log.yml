@@ -1,0 +1,113 @@
+pipeline.description: >-
+  Pipeline for parsing Linux auditd logs
+
+pipeline.processors:
+- grok:
+    field: message
+    patterns:
+      - '%{AUDIT_PREFIX} %{AUDIT_KEY_VALUES:auditd.log.kv} old auid=%{NUMBER:auditd.log.old_auid} new auid=%{NUMBER:auditd.log.new_auid} old ses=%{NUMBER:auditd.log.old_ses} new ses=%{NUMBER:auditd.log.new_ses}'
+      - "%{AUDIT_PREFIX} %{AUDIT_KEY_VALUES:auditd.log.kv} msg=['\"](%{DATA:auditd.log.msg}\\s+)?%{AUDIT_KEY_VALUES:auditd.log.sub_kv}['\"]"
+      - '%{AUDIT_PREFIX} %{AUDIT_KEY_VALUES:auditd.log.kv}'
+      - '%{AUDIT_PREFIX}'
+      - '%{AUDIT_TYPE} %{AUDIT_KEY_VALUES:auditd.log.kv}'
+    definitions:
+      AUDIT_TYPE: '^type=%{NOTSPACE:auditd.log.record_type}'
+      AUDIT_PREFIX: '%{AUDIT_TYPE} msg=audit\(%{NUMBER:auditd.log.epoch}:%{NUMBER:auditd.log.sequence}\):(%{DATA})?'
+      AUDIT_KEY_VALUES: '%{WORD}=%{GREEDYDATA}'
+- kv:
+    to: 'auditd.log'
+    field: 'auditd.log.kv'
+    split.field.regex: '\s+'
+    split.value.regex: '='
+- kv:
+    to: auditd.log
+    field: 'auditd.log.sub_kv'
+    split.field.regex: '\s+'
+    split.value.regex: '='
+    ignore_missing: true
+- try_remove.field: 'auditd.log.kv'
+- try_remove.field: 'auditd.log.sub_kv'
+- try_remove.field: message
+- rename:
+    to: 'read_timestamp'
+    field: '@timestamp'
+- date:
+    to: "@timestamp"
+    field: "auditd.log.epoch"
+    ignore_failure: true
+    format: 'UNIX'
+- convert:
+    field: 'auditd.log.sequence'
+    type: integer
+    ignore_missing: true
+- script.code: >
+    String trimQuotes(def v) {
+      if (v.startsWith("'") || v.startsWith('"')) {
+        v = v.substring(1, v.length());
+      }
+      if (v.endsWith("'") || v.endsWith('"')) {
+        v = v.substring(0, v.length()-1);
+      }
+      return v;
+    }
+    
+    boolean isHexAscii(String v) {
+      def len = v.length();
+      if (len == 0 || len % 2 != 0) {
+        return false;
+      }
+      for (int i = 0 ; i < len ; i++) {
+        if (Character.digit(v.charAt(i), 16) == -1) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    String convertHexToString(String hex) {
+      StringBuilder sb = new StringBuilder();
+      for (int i=0; i < hex.length() - 1; i+=2) {
+        String output = hex.substring(i, (i + 2));
+        int decimal = Integer.parseInt(output, 16);
+        sb.append((char)decimal);
+      }
+      return sb.toString();
+    }
+
+    def possibleHexKeys = ['exe', 'cmd'];
+
+    def audit = ctx.auditd.get("log");
+    Iterator entries = audit.entrySet().iterator();
+    while (entries.hasNext()) {
+      def e = entries.next();
+      def k = e.getKey();
+      def v = e.getValue();
+
+      // Remove entries whose value is ?
+      if (v == "?" || v == "(null)" || v == "") {
+        entries.remove();
+        continue;
+      }
+      
+      // Convert hex values to ASCII.
+      if (possibleHexKeys.contains(k) && isHexAscii(v)) {
+        v = convertHexToString(v);
+        audit.put(k, v);
+      }
+       
+      // Trim quotes.
+      if (v instanceof String) {
+        v = trimQuotes(v);
+        audit.put(k, v);
+      }
+         
+      // Convert arch.
+      if (k == "arch" && v == "c000003e") {
+        audit.put(k, "x86_64");
+      }
+    }
+
+- geoip:
+    to: auditd.log.geoip
+    field: auditd.log.addr
+    ignore_failure: true
