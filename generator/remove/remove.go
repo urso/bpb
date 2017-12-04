@@ -9,15 +9,17 @@ import (
 )
 
 type remove struct {
-	Field string
+	config
 }
 
 type config struct {
-	Field string `validate:"required"`
+	Field         string `validate:"required"`
+	IgnoreFailure bool   `config:"ignore_failure"`
 }
 
 func init() {
 	generator.Register("remove", makeRemove)
+	generator.Register("try_remove", makeTryRemove)
 }
 
 func makeRemove(cfg *common.Config) (generator.Processor, error) {
@@ -26,20 +28,43 @@ func makeRemove(cfg *common.Config) (generator.Processor, error) {
 		return nil, err
 	}
 
-	return &remove{Field: config.Field}, nil
+	return &remove{config}, nil
+}
+
+func makeTryRemove(cfg *common.Config) (generator.Processor, error) {
+	tryConfig := struct {
+		Field string `validate:"required"`
+	}{}
+	if err := cfg.Unpack(&tryConfig); err != nil {
+		return nil, err
+	}
+
+	return &remove{config{
+		Field:         tryConfig.Field,
+		IgnoreFailure: true,
+	}}, nil
 }
 
 func (r *remove) Name() string { return "remove" }
 
 func (r *remove) CompileIngest() ([]ingest.Processor, error) {
-	return ingest.MakeSingleProcessor("remove", map[string]interface{}{
+	params := map[string]interface{}{
 		"field": r.Field,
-	}), nil
+	}
+	if r.IgnoreFailure {
+		params["ignore_failure"] = true
+	}
+
+	return ingest.MakeSingleProcessor("remove", params), nil
 }
 
 // failure tag: none, need to generate custom tag handling
 func (r *remove) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
-	failureTag := ctx.CreateTag("_failure_remove")
+	var failureTag string
+
+	if !r.IgnoreFailure {
+		failureTag = ctx.CreateTag("_failure_remove")
+	}
 
 	params := ls.Params{}
 	params.RemoveField(r.Field)
