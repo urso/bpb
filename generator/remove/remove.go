@@ -8,6 +8,8 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 )
 
+// TODO: add support for removing multiple fields at once
+
 type remove struct {
 	config
 }

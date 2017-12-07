@@ -14,6 +14,8 @@ import (
 	_ "github.com/urso/bpb/generator/date"
 	_ "github.com/urso/bpb/generator/geoip"
 	_ "github.com/urso/bpb/generator/grok"
+	_ "github.com/urso/bpb/generator/gsub"
+	_ "github.com/urso/bpb/generator/json"
 	_ "github.com/urso/bpb/generator/kv"
 	_ "github.com/urso/bpb/generator/remove"
 	_ "github.com/urso/bpb/generator/rename"
