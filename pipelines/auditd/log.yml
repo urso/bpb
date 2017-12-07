@@ -1,7 +1,7 @@
-pipeline.description: >-
+description: >-
   Pipeline for parsing Linux auditd logs
 
-pipeline.processors:
+processors:
 - grok:
     field: message
     patterns:
@@ -14,13 +14,13 @@ pipeline.processors:
       AUDIT_TYPE: '^type=%{NOTSPACE:auditd.log.record_type}'
       AUDIT_PREFIX: '%{AUDIT_TYPE} msg=audit\(%{NUMBER:auditd.log.epoch}:%{NUMBER:auditd.log.sequence}\):(%{DATA})?'
       AUDIT_KEY_VALUES: '%{WORD}=%{GREEDYDATA}'
-- kv:
-    to: 'auditd.log'
+- key_value:
+    target_field: 'auditd.log'
     field: 'auditd.log.kv'
     split.field.regex: '\s+'
     split.value.regex: '='
-- kv:
-    to: auditd.log
+- key_value:
+    target_field: auditd.log
     field: 'auditd.log.sub_kv'
     split.field.regex: '\s+'
     split.value.regex: '='
@@ -29,10 +29,10 @@ pipeline.processors:
 - try_remove.field: 'auditd.log.sub_kv'
 - try_remove.field: message
 - rename:
-    to: 'read_timestamp'
+    target_field: 'read_timestamp'
     field: '@timestamp'
 - date:
-    to: "@timestamp"
+    target_field: "@timestamp"
     field: "auditd.log.epoch"
     ignore_failure: true
     format: 'UNIX'
@@ -108,6 +108,6 @@ pipeline.processors:
     }
 
 - geoip:
-    to: auditd.log.geoip
+    target_field: auditd.log.geoip
     field: auditd.log.addr
     ignore_failure: true

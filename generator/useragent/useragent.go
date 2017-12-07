@@ -14,9 +14,9 @@ type useragent struct {
 
 type config struct {
 	Field         string `validate:"required"`
-	To            string
-	DropField     bool `config:"drop_field"`
-	IgnoreFailure bool `config:"ignore_failure"`
+	To            string `config:"target_field"`
+	DropField     bool   `config:"drop_field"`
+	IgnoreFailure bool   `config:"ignore_failure"`
 }
 
 func init() {

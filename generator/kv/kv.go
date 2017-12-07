@@ -16,7 +16,7 @@ type kv struct {
 
 type config struct {
 	Field         string      `validate:"required"`
-	To            string      `validate:"required"`
+	To            string      `config:"target_field" validate:"required"`
 	FieldSplit    splitConfig `config:"split.field"`
 	ValueSplit    splitConfig `config:"split.value"`
 	IgnoreMissing bool        `config:"ignore_missing"`
@@ -38,7 +38,7 @@ const (
 )
 
 func init() {
-	generator.Register("kv", makeKV)
+	generator.Register("key_value", makeKV)
 }
 
 func makeKV(cfg *common.Config) (generator.Processor, error) {

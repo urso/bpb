@@ -15,8 +15,8 @@ type convert struct {
 }
 
 type config struct {
-	Field         string `validate:"required"`
-	To            string
+	Field         string   `validate:"required"`
+	To            string   `config:"target_field"`
 	Type          convType `validate:"required"`
 	IgnoreMissing bool     `config:"ignore_missing"`
 	IgnoreFailure bool     `config:"ignore_failure"`

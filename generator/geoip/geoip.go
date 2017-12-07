@@ -14,8 +14,8 @@ type geoip struct {
 
 type config struct {
 	Field     string `validate:"required"`
-	To        string
-	DropField bool `config:"drop_field"`
+	To        string `config:"target_field"`
+	DropField bool   `config:"drop_field"`
 }
 
 func init() {

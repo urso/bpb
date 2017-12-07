@@ -1,6 +1,6 @@
-pipeline.description: "Pipeline for parsing Nginx access logs"
+description: "Pipeline for parsing Nginx access logs"
 
-pipeline.processors:
+processors:
 - grok:
     field: message
     drop_field: true
@@ -8,26 +8,26 @@ pipeline.processors:
     definitions:
       IP_LIST: '%{IP}("?,?\s*%{IP})*'
     ignore_missing: true
-- split:
+- split_by:
     field: 'nginx.access.remote_ip_list'
     regex: '"?,?\s+'
 - select:
     ingest: ${ingest.pipeline.nginx_set_remote_ip}
     logstash: ${logstash.pipeline.nginx_set_remote_ip}
 - rename:
-    to: 'read_timestamp'
+    target_field: 'read_timestamp'
     field: '@timestamp'
 - date:
-    to: "@timestamp"
+    target_field: "@timestamp"
     field: "nginx.access.time"
     drop_field: true
     format: 'dd/MMM/YYYY:H:m:s Z'
 - user_agent:
-    to: "nginx.access.user_agent"
+    target_field: "nginx.access.user_agent"
     field: "nginx.access.agent"
     drop_field: true
 - geoip:
-    to: "nginx.access.geoip"
+    target_field: "nginx.access.geoip"
     field: "nginx.access.remote_ip"
 
 

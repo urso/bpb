@@ -54,8 +54,8 @@ func loadPipeline(files []string) (*generator.Generator, error) {
 	}
 
 	pipeline := struct {
-		Description string           `config:"pipeline.description"`
-		Processors  []*common.Config `config:"pipeline.processors"`
+		Description string           `config:"description"`
+		Processors  []*common.Config `config:"processors"`
 	}{}
 	if err := cfg.Unpack(&pipeline); err != nil {
 		log.Fatal(err)

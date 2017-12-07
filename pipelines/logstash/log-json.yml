@@ -1,28 +1,28 @@
-pipeline.description: >
+description: >
   Pipeline for parsing logstash logs in the plain format
 
-pipeline.processors:
+processors:
 - json:
-    to: 'logstash.log'
+    target_field: 'logstash.log'
     field: 'message'
 - rename:
-    to: 'read_timestamp'
+    target_field: 'read_timestamp'
     field: '@timestamp'
 - convert:
     field: 'logstash.log.timeMillis'
     type: string
 - date:
-    to: '@timestamp'
+    target_field: '@timestamp'
     field: 'logstash.log.timeMillis'
     format: UNIX_MS
 - rename:
-    to: 'logstash.log.module'
+    target_field: 'logstash.log.module'
     field: 'logstash.log.loggerName'
 - remove.field: message
 - remove.field: logstash.log.logEvent.message
 - rename:
-    to: "logstash.log.message"
+    target_field: "logstash.log.message"
     field: "logstash.log.logEvent.message"
 - rename:
-    to: "logstash.log.logEvent"
+    target_field: "logstash.log.logEvent"
     field: "logstash.log.log_event"

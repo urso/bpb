@@ -20,12 +20,12 @@ type config struct {
 	Field     string `validate:"required"`
 	Separator string
 	Regex     string
-	To        string
-	DropField bool `config:"drop_field"`
+	To        string `config:"target_field"`
+	DropField bool   `config:"drop_field"`
 }
 
 func init() {
-	generator.Register("split", makeSplit)
+	generator.Register("split_by", makeSplit)
 }
 
 func makeSplit(cfg *common.Config) (generator.Processor, error) {

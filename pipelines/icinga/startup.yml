@@ -1,7 +1,7 @@
-pipeline.description: >
+description: >
   Pipeline for parsing icinga startup logs
 
-pipeline.processors:
+processors:
 - grok:
     field: message
     drop_field: true

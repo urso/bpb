@@ -1,8 +1,8 @@
-pipeline.description: >-
+description: >-
   Pipeline for parsing Apache2 access logs. Requires the geoip and user_agent
   plugins.
 
-pipeline.processors:
+processors:
 - grok:
     field: message
     drop_field: true
@@ -11,18 +11,18 @@ pipeline.processors:
       - '%{IPORHOST:apache2.access.remote_ip} - %{DATA:apache2.access.user_name} \[%{HTTPDATE:apache2.access.time}\] "%{WORD:apache2.access.method} %{DATA:apache2.access.url} HTTP/%{NUMBER:apache2.access.http_version}" %{NUMBER:apache2.access.response_code} (?:%{NUMBER:apache2.access.body_sent.bytes}|-)( "%{DATA:apache2.access.referrer}")?( "%{DATA:apache2.access.agent}")?'
       - '%{IPORHOST:apache2.access.remote_ip} - %{DATA:apache2.access.user_name} \[%{HTTPDATE:apache2.access.time}\] "-" %{NUMBER:apache2.access.response_code} -'
 - rename:
-    to: 'read_timestamp'
+    target_field: 'read_timestamp'
     field: '@timestamp'
 - date:
-    to: "@timestamp"
+    target_field: "@timestamp"
     field: "apache2.access.time"
     drop_field: true
     format: 'dd/MMM/YYYY:H:m:s Z'
 - user_agent:
-    to: "apache2.access.user_agent"
+    target_field: "apache2.access.user_agent"
     field: "apache2.access.agent"
     drop_field: true
     ignore_failure: true
 - geoip:
-    to: "apache2.access.geoip"
+    target_field: "apache2.access.geoip"
     field: "apache2.access.remote_ip"

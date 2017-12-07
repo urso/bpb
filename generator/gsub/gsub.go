@@ -17,10 +17,10 @@ type config struct {
 	Field         string `validate:"required"`
 	Pattern       string `validate:"required"`
 	Replacement   string `validate:"required"`
-	To            string
-	IgnoreMissing bool `config:"ignore_missing"`
-	IgnoreFailure bool `config:"ignore_failure"`
-	DropField     bool
+	To            string `config:"target_field"`
+	IgnoreMissing bool   `config:"ignore_missing"`
+	IgnoreFailure bool   `config:"ignore_failure"`
+	DropField     bool   `config:"drop_field"`
 }
 
 func init() {

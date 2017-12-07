@@ -21,7 +21,7 @@ type date struct {
 
 type config struct {
 	Field         string `validate:"required"`
-	To            string
+	To            string `config:"target_field"`
 	Format        string
 	Formats       []string
 	Locale        string

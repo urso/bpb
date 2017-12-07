@@ -14,7 +14,7 @@ type rename struct {
 
 type config struct {
 	Field         string `validate:"required"`
-	To            string `validate:"required"`
+	To            string `config:"target_field" validate:"required"`
 	IgnoreMissing bool   `config:"ignore_missing"`
 	IgnoreFailure bool   `config:"ignore_failure"`
 }
