@@ -19,6 +19,8 @@ type config struct {
 	To            string
 	Type          convType `validate:"required"`
 	IgnoreMissing bool     `config:"ignore_missing"`
+	IgnoreFailure bool     `config:"ignore_failure"`
+	DropField     bool     `config:"drop_field"`
 }
 
 type convType uint8
@@ -57,8 +59,15 @@ func (c *convert) CompileIngest() ([]ingest.Processor, error) {
 	if c.IgnoreMissing {
 		params["ignore_missing"] = true
 	}
+	if c.IgnoreFailure {
+		params["ignore_failure"] = true
+	}
 
-	return ingest.MakeSingleProcessor("convert", params), nil
+	ps := ingest.MakeSingleProcessor("convert", params)
+	if c.DropField {
+		ps = append(ps, ingest.RemoveField(c.Field))
+	}
+	return ps, nil
 }
 
 func (C *convert) CompileLogstash(ctx *generator.LogstashCtx) (generator.FilterBlock, error) {
