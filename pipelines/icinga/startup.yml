@@ -1,0 +1,11 @@
+pipeline.description: >
+  Pipeline for parsing icinga startup logs
+
+pipeline.processors:
+- grok:
+    field: message
+    drop_field: true
+    ignore_missing: true
+    pattern: '%{WORD:icinga.startup.severity}/%{WORD:icinga.startup.facility}: %{GREEDYMULTILINE:icinga.startup.message}'
+    definitions:
+      GREEDYMULTILINE: '(.|\n)*'

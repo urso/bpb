@@ -1,0 +1,18 @@
+pipeline.description: >
+  Pipeline for parsing icinga debug logs
+
+pipeline.processors:
+- grok:
+    field: message
+    drop_field: true
+    ignore_missing: true
+    pattern: '\[%{TIMESTAMP:icinga.debug.timestamp}\] %{WORD:icinga.debug.severity}/%{WORD:icinga.debug.facility}: %{GREEDYMULTILINE:icinga.debug.message}'
+    definitions:
+      TIMESTAMP: '%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{HOUR}:%{MINUTE}:%{SECOND} %{ISO8601_TIMEZONE}'
+      GREEDYMULTILINE: '(.|\n)*'
+- date:
+    to: "@timestamp"
+    field: "icinga.debug.time"
+    format: "yyyy-MM-dd HH:mm:ss Z"
+    drop_field: true
+    ignore_failure: true
